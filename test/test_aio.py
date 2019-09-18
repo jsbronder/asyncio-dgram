@@ -113,6 +113,46 @@ async def test_bind_sync(addr, family):
     [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
     ids=["INET", "INET6"],
 )
+async def test_from_socket_streamtype(addr, family):
+    with socket.socket(family, socket.SOCK_DGRAM) as sock:
+        sock.bind(addr)
+        stream = await asyncio_dgram.from_socket(sock)
+
+        assert stream.sockname is not None
+        assert sock.getsockname() == stream.sockname
+        assert stream.peername is None
+        assert isinstance(stream, asyncio_dgram.aio.DatagramServer)
+
+    with socket.socket(family, socket.SOCK_DGRAM) as sock:
+        sock.bind(addr)
+
+        with socket.socket(family, socket.SOCK_DGRAM) as tsock:
+            tsock.connect(sock.getsockname())
+            stream = await asyncio_dgram.from_socket(tsock)
+
+            assert stream.sockname is not None
+            assert tsock.getsockname() == stream.sockname
+            assert isinstance(stream, asyncio_dgram.aio.DatagramClient)
+            assert stream.peername == sock.getsockname()
+
+
+@pytest.mark.asyncio
+async def test_from_socket_bad_socket():
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+        with pytest.raises(TypeError, match="either AddressFamily.AF"):
+            await asyncio_dgram.from_socket(sock)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        with pytest.raises(TypeError, match="must be SocketKind.SOCK_DGRAM"):
+            await asyncio_dgram.from_socket(sock)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "addr,family",
+    [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
+    ids=["INET", "INET6"],
+)
 async def test_no_server(addr, family):
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.bind(addr)

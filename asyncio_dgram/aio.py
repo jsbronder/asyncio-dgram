@@ -1,7 +1,8 @@
 import asyncio
+import socket
 import warnings
 
-__all__ = ("bind", "connect")
+__all__ = ("bind", "connect", "from_socket")
 
 
 class DatagramStream:
@@ -197,3 +198,37 @@ async def connect(addr):
     )
 
     return DatagramClient(transport, recvq, excq)
+
+
+async def from_socket(sock):
+    """
+    Create a DatagramStream from a socket.  This is meant to be used in cases
+    where the defaults set by `bind()` and `connect()` are not desired and/or
+    sufficient.  If `socket.connect()` was previously called on the socket,
+    then an instance of DatagramClient will be returned, otherwise an instance
+    of DatagramServer.
+
+    @param sock - socket to use in the DatagramStream.
+    @return     - A DatagramClient for connected sockets, otherwise a
+                  DatagramServer.
+    """
+    loop = asyncio.get_event_loop()
+    recvq = asyncio.Queue()
+    excq = asyncio.Queue()
+
+    if sock.family not in (socket.AF_INET, socket.AF_INET6):
+        raise TypeError(
+            "socket must be either %s or %s" % (socket.AF_INET, socket.AF_INET6)
+        )
+
+    if sock.type != socket.SOCK_DGRAM:
+        raise TypeError("socket must be %s" % (socket.SOCK_DGRAM,))
+
+    transport, protocol = await loop.create_datagram_endpoint(
+        lambda: Protocol(recvq, excq), sock=sock
+    )
+
+    if transport.get_extra_info("peername") is not None:
+        return DatagramClient(transport, recvq, excq)
+    else:
+        return DatagramServer(transport, recvq, excq)
