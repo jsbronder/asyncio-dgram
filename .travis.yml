@@ -1,0 +1,13 @@
+language: python
+python:
+    - "3.6"
+    - "3.7"
+install:
+    - pip install -r requirements.txt
+    - pip install -r requirements-test.txt
+before_script:
+    - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+script:
+    - make test
+    - make lint
+    - make format && git diff --quiet HEAD

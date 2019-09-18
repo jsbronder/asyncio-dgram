@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jsbronder/asyncio-dgram.svg?branch=master)](https://travis-ci.org/jsbronder/asyncio-dgram)
+
 # Higher level Datagram support for Asyncio
 Simple wrappers that allow you to `await read()` from datagrams as suggested
 by Guido van Rossum
