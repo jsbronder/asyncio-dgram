@@ -21,7 +21,7 @@ setuptools.setup(
     version="0.0.1",
     description="Higher level Datagram support for Asyncio",
     long_description=readfile("README.md"),
-    url="https://github.com/jsbronder/asynio-dgram",
+    url="https://github.com/jsbronder/asyncio-dgram",
     author="Justin Bronder",
     author_email="jsbronder@cold-front.org",
     classifiers=[
