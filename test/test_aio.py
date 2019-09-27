@@ -1,9 +1,31 @@
 import asyncio
+import contextlib
 import socket
 
 import pytest
 
 import asyncio_dgram
+
+
+@contextlib.contextmanager
+def loop_exception_handler():
+    """
+    Replace the current event loop exception handler with one that
+    simply stores exceptions in the returned dictionary.
+
+    @return - dictionary that is updated with the last loop exception
+    """
+    context = {}
+
+    def handler(self, c):
+        context.update(c)
+
+    loop = asyncio.get_event_loop()
+    orig_handler = loop.get_exception_handler()
+    loop.set_exception_handler(handler)
+    yield context
+
+    loop.set_exception_handler(orig_handler)
 
 
 @pytest.mark.asyncio
@@ -134,6 +156,11 @@ async def test_from_socket_streamtype(addr, family):
             assert tsock.getsockname() == stream.sockname
             assert isinstance(stream, asyncio_dgram.aio.DatagramClient)
             assert stream.peername == sock.getsockname()
+
+            # Make sure that the transport stored the peername
+            with loop_exception_handler() as context:
+                await stream.send(b"abc")
+                assert context == {}
 
 
 @pytest.mark.asyncio

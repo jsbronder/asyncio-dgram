@@ -229,6 +229,8 @@ async def from_socket(sock):
     )
 
     if transport.get_extra_info("peername") is not None:
+        # Workaround transport ignoring the peer address of the socket.
+        transport._address = transport.get_extra_info("peername")
         return DatagramClient(transport, recvq, excq)
     else:
         return DatagramServer(transport, recvq, excq)
