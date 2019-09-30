@@ -18,7 +18,7 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 7:
 
 setuptools.setup(
     name="asyncio-dgram",
-    version="0.1.0",
+    version="0.1.1",
     description="Higher level Datagram support for Asyncio",
     long_description=readfile("README.md"),
     url="https://github.com/jsbronder/asyncio-dgram",
