@@ -143,6 +143,7 @@ async def test_from_socket_streamtype(addr, family):
         assert stream.sockname is not None
         assert sock.getsockname() == stream.sockname
         assert stream.peername is None
+        assert stream.socket.fileno() == sock.fileno()
         assert isinstance(stream, asyncio_dgram.aio.DatagramServer)
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -156,6 +157,7 @@ async def test_from_socket_streamtype(addr, family):
             assert tsock.getsockname() == stream.sockname
             assert isinstance(stream, asyncio_dgram.aio.DatagramClient)
             assert stream.peername == sock.getsockname()
+            assert stream.socket.fileno() == tsock.fileno()
 
             # Make sure that the transport stored the peername
             with loop_exception_handler() as context:
