@@ -33,7 +33,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
     ],
     packages=["asyncio_dgram"],
-    python_requires=">=3.7",
+    python_requires=">=3.6",
     install_requires=readfile("requirements.txt").split(),
     extras_require={"test": readfile("requirements-test.txt").split()},
     **extra_options,
