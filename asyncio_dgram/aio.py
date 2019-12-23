@@ -22,17 +22,20 @@ class DatagramStream:
     raised.
     """
 
-    def __init__(self, transport, recvq, excq):
+    def __init__(self, transport, recvq, excq, drained):
         """
         @param transport    - asyncio transport
         @param recvq        - asyncio queue that gets populated by the
                               DatagramProtocol with received datagrams.
         @param excq         - asyncio queue that gets populated with any errors
                               detected by the DatagramProtocol.
+        @param drained      - asyncio event that is unset when writing is
+                              paused and set otherwise.
         """
         self._transport = transport
         self._recvq = recvq
         self._excq = excq
+        self._drained = drained
 
     def __del__(self):
         self._transport.close()
@@ -87,6 +90,7 @@ class DatagramStream:
         """
         _ = self.exception
         self._transport.sendto(data, addr)
+        await self._drained.wait()
 
     async def recv(self):
         """
@@ -132,13 +136,18 @@ class Protocol(asyncio.DatagramProtocol):
     based asyncio into higher level coroutines.
     """
 
-    def __init__(self, recvq, excq):
+    def __init__(self, recvq, excq, drained):
         """
         @param recvq    - asyncio.Queue for new datagrams
         @param excq     - asyncio.Queue for exceptions
+        @param drained  - asyncio.Event set when the write buffer is below the
+                          high watermark.
         """
         self._recvq = recvq
         self._excq = excq
+        self._drained = drained
+
+        self._drained.set()
 
         # Transports are connected at the time a connection is made.
         self._transport = None
@@ -167,6 +176,14 @@ class Protocol(asyncio.DatagramProtocol):
     def error_received(self, exc):
         self._excq.put_nowait(exc)
 
+    def pause_writing(self):
+        self._drained.clear()
+        super().pause_writing()
+
+    def resume_writing(self):
+        self._drained.set()
+        super().resume_writing()
+
 
 async def bind(addr):
     """
@@ -181,12 +198,13 @@ async def bind(addr):
     loop = asyncio.get_event_loop()
     recvq = asyncio.Queue()
     excq = asyncio.Queue()
+    drained = asyncio.Event()
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq), local_addr=addr, reuse_address=True
+        lambda: Protocol(recvq, excq, drained), local_addr=addr, reuse_address=True
     )
 
-    return DatagramServer(transport, recvq, excq)
+    return DatagramServer(transport, recvq, excq, drained)
 
 
 async def connect(addr):
@@ -201,12 +219,13 @@ async def connect(addr):
     loop = asyncio.get_event_loop()
     recvq = asyncio.Queue()
     excq = asyncio.Queue()
+    drained = asyncio.Event()
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq), remote_addr=addr
+        lambda: Protocol(recvq, excq, drained), remote_addr=addr
     )
 
-    return DatagramClient(transport, recvq, excq)
+    return DatagramClient(transport, recvq, excq, drained)
 
 
 async def from_socket(sock):
@@ -224,6 +243,7 @@ async def from_socket(sock):
     loop = asyncio.get_event_loop()
     recvq = asyncio.Queue()
     excq = asyncio.Queue()
+    drained = asyncio.Event()
 
     if sock.family not in (socket.AF_INET, socket.AF_INET6):
         raise TypeError(
@@ -234,12 +254,12 @@ async def from_socket(sock):
         raise TypeError("socket must be %s" % (socket.SOCK_DGRAM,))
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq), sock=sock
+        lambda: Protocol(recvq, excq, drained), sock=sock
     )
 
     if transport.get_extra_info("peername") is not None:
         # Workaround transport ignoring the peer address of the socket.
         transport._address = transport.get_extra_info("peername")
-        return DatagramClient(transport, recvq, excq)
+        return DatagramClient(transport, recvq, excq, drained)
     else:
-        return DatagramServer(transport, recvq, excq)
+        return DatagramServer(transport, recvq, excq, drained)

@@ -1,10 +1,21 @@
 import asyncio
 import contextlib
+import os
 import socket
+import unittest.mock
 
 import pytest
 
 import asyncio_dgram
+
+
+@pytest.fixture
+def mock_socket():
+    s = unittest.mock.create_autospec(socket.socket)
+    s.family = socket.AF_INET
+    s.type = socket.SOCK_DGRAM
+
+    return s
 
 
 @contextlib.contextmanager
@@ -260,3 +271,81 @@ async def test_unconnected_sender(addr):
 
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(connected.recv(), 0.05)
+
+
+@pytest.mark.asyncio
+async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
+    # This is a little involved, but necessary to make sure that the Protocol
+    # is correctly noticing when writing as been paused and resumed.  In
+    # summary:
+    #
+    # - Mock the Protocol with one that sets the write buffer limits to 0 and
+    # records when pause and recume writing are called.
+    #
+    # - Use a mock socket so that we can inject a BlockingIOError on send.
+    # Ideally we'd mock method itself, but it's read-only the entire object
+    # needs to be mocked.  Due to this, we need to use a temporary file that we
+    # can write to in order to kick the event loop to consider it ready for
+    # writing.
+
+    class TestableProtocol(asyncio_dgram.aio.Protocol):
+        pause_writing_called = 0
+        resume_writing_called = 0
+        instance = None
+
+        def __init__(self, *args, **kwds):
+            TestableProtocol.instance = self
+            super().__init__(*args, **kwds)
+
+        def connection_made(self, transport):
+            transport.set_write_buffer_limits(low=0, high=0)
+            super().connection_made(transport)
+
+        def pause_writing(self):
+            self.pause_writing_called += 1
+            super().pause_writing()
+
+        def resume_writing(self):
+            self.resume_writing_called += 1
+            super().resume_writing()
+
+    async def passthrough():
+        """
+        Used to mock the wait method on the asyncio.Event tracking if the write
+        buffer is past the high water mark or not.  Given we're testing how
+        that case is handled, we know it's safe locally to mock it.
+        """
+        pass
+
+    with monkeypatch.context() as ctx:
+        ctx.setattr(asyncio_dgram.aio, "Protocol", TestableProtocol)
+
+        client = await asyncio_dgram.from_socket(mock_socket)
+        mock_socket.send.side_effect = BlockingIOError
+        mock_socket.fileno.return_value = os.open(
+            tmp_path / "socket", os.O_RDONLY | os.O_CREAT
+        )
+
+        with monkeypatch.context() as ctx2:
+            ctx2.setattr(client._drained, "wait", passthrough)
+            await client.send(b"foo")
+
+        assert TestableProtocol.instance.pause_writing_called == 1
+        assert TestableProtocol.instance.resume_writing_called == 0
+        assert not TestableProtocol.instance._drained.is_set()
+
+        mock_socket.send.side_effect = None
+        fd = os.open(tmp_path / "socket", os.O_WRONLY)
+        os.write(fd, b"\n")
+        os.close(fd)
+
+        with monkeypatch.context() as ctx2:
+            ctx2.setattr(client._drained, "wait", passthrough)
+            await client.send(b"foo")
+        await asyncio.sleep(0.1)
+
+        assert TestableProtocol.instance.pause_writing_called == 1
+        assert TestableProtocol.instance.resume_writing_called == 1
+        assert TestableProtocol.instance._drained.is_set()
+
+        os.close(mock_socket.fileno.return_value)
