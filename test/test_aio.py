@@ -280,7 +280,7 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
     # summary:
     #
     # - Mock the Protocol with one that sets the write buffer limits to 0 and
-    # records when pause and recume writing are called.
+    # records when pause and resume writing are called.
     #
     # - Use a mock socket so that we can inject a BlockingIOError on send.
     # Ideally we'd mock method itself, but it's read-only the entire object
