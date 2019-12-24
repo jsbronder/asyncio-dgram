@@ -188,8 +188,7 @@ class Protocol(asyncio.DatagramProtocol):
 async def bind(addr):
     """
     Bind a socket to a local address for datagrams.  The socket will be either
-    AF_INET or AF_INET6 depending upon the type of address specified.  The
-    socket will be reusable (SO_REUSEADDR) once it enters TIME_WAIT.
+    AF_INET or AF_INET6 depending upon the type of address specified.
 
     @param addr - For AF_INET or AF_INET6, a tuple with the the host and port to
                   to bind; port may be set to 0 to get any free port.
@@ -201,7 +200,7 @@ async def bind(addr):
     drained = asyncio.Event()
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq, drained), local_addr=addr, reuse_address=True
+        lambda: Protocol(recvq, excq, drained), local_addr=addr, reuse_address=False
     )
 
     return DatagramServer(transport, recvq, excq, drained)
