@@ -72,7 +72,7 @@ $(REQ_FILES):
 
 dist: dist/$(PACKAGE)-$(VERSION).tar.gz
 dist/$(PACKAGE)-$(VERSION).tar.gz: $(PKG_FILES) setup.py
-	$(PYTHON) setup.py sdist
+	$(PYTHON) setup.py sdist bdist_wheel
 
 
 format:
