@@ -1,0 +1,7 @@
+1.0.0:
+	- bind() no longer sets SO_REUSEADDR by default.  See upstream discussion
+	for rationale, https://bugs.python.org/issue37228
+
+	- DatagramStream.send() will now wait for the asyncio write buffer to
+	drain below the highwater mark before returning.  This mimics the
+	forthcoming behavior from upstream, https://bugs.python.org/issue38242
