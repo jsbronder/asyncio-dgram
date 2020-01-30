@@ -1,3 +1,7 @@
+1.0.1:
+	- bind() no longer explicitly disables SO_REUSEADDR as upstream deprecated
+	the option.
+
 1.0.0:
 	- bind() no longer sets SO_REUSEADDR by default.  See upstream discussion
 	for rationale, https://bugs.python.org/issue37228
