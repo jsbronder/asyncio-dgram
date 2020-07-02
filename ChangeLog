@@ -1,3 +1,6 @@
+next:
+	- AF_UNIX support added for python 3.7+
+
 1.0.1:
 	- bind() no longer explicitly disables SO_REUSEADDR as upstream deprecated
 	the option.

@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import os
 import socket
+import sys
 import unittest.mock
 
 import pytest
@@ -42,28 +43,45 @@ def loop_exception_handler():
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "addr,family",
-    [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
-    ids=["INET", "INET6"],
+    [
+        (("127.0.0.1", 0), socket.AF_INET),
+        (("::1", 0), socket.AF_INET6),
+        ("socket", socket.AF_UNIX),
+    ],
+    ids=["INET", "INET6", "UNIX"],
 )
-async def test_connect_sync(addr, family):
+async def test_connect_sync(addr, family, tmp_path):
     # Bind a regular socket, asyncio_dgram connect, then check asyncio send and
     # receive.
+
+    if family == socket.AF_UNIX:
+        if sys.version_info < (3, 7):
+            pytest.skip()
+        addr = str(tmp_path / addr)
+
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.bind(addr)
-        client = await asyncio_dgram.connect(sock.getsockname()[:2])
+        dest = addr if family == socket.AF_UNIX else sock.getsockname()[:2]
+        client = await asyncio_dgram.connect(dest)
 
         assert client.peername == sock.getsockname()
 
         await client.send(b"hi")
         got, client_addr = sock.recvfrom(4)
         assert got == b"hi"
-        assert client_addr == client.sockname
         assert client.peername == sock.getsockname()
 
-        sock.sendto(b"bye", client.sockname)
-        got, server_addr = await client.recv()
-        assert got == b"bye"
-        assert server_addr == sock.getsockname()
+        if family == socket.AF_UNIX:
+            # AF_UNIX doesn't automatically bind
+            assert client_addr is None
+            os.unlink(addr)
+        else:
+            assert client_addr == client.sockname
+
+            sock.sendto(b"bye", client.sockname)
+            got, server_addr = await client.recv()
+            assert got == b"bye"
+            assert server_addr == sock.getsockname()
 
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(client.recv(), 0.05)
@@ -72,17 +90,20 @@ async def test_connect_sync(addr, family):
     # connect, then check asyncio receive and send.
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.bind(addr)
-        client = await asyncio_dgram.connect(sock.getsockname()[:2])
+        dest = addr if family == socket.AF_UNIX else sock.getsockname()[:2]
+        client = await asyncio_dgram.connect(dest)
 
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(client.recv(), 0.05)
 
         assert client.peername == sock.getsockname()
 
-        sock.sendto(b"hi", client.sockname)
-        got, server_addr = await client.recv()
-        assert got == b"hi"
-        assert server_addr == sock.getsockname()
+        if family != socket.AF_UNIX:
+            # AF_UNIX doesn't automatically bind
+            sock.sendto(b"hi", client.sockname)
+            got, server_addr = await client.recv()
+            assert got == b"hi"
+            assert server_addr == sock.getsockname()
 
         await client.send(b"bye")
         got, client_addr = sock.recvfrom(4)
@@ -93,27 +114,43 @@ async def test_connect_sync(addr, family):
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "addr,family",
-    [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
-    ids=["INET", "INET6"],
+    [
+        (("127.0.0.1", 0), socket.AF_INET),
+        (("::1", 0), socket.AF_INET6),
+        ("socket", socket.AF_UNIX),
+    ],
+    ids=["INET", "INET6", "UNIX"],
 )
-async def test_bind_sync(addr, family):
+async def test_bind_sync(addr, family, tmp_path):
     # Bind an asyncio_dgram, regular socket connect, then check asyncio send and
     # receive.
+
+    if family == socket.AF_UNIX:
+        if sys.version_info < (3, 7):
+            pytest.skip()
+        addr = str(tmp_path / addr)
+
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         server = await asyncio_dgram.bind(addr)
         sock.connect(server.sockname)
 
         assert server.peername is None
 
-        await server.send(b"hi", sock.getsockname())
-        got, server_addr = sock.recvfrom(4)
-        assert got == b"hi"
-        assert server_addr == server.sockname
+        if family != socket.AF_UNIX:
+            await server.send(b"hi", sock.getsockname())
+            got, server_addr = sock.recvfrom(4)
+            assert got == b"hi"
+            assert server_addr == server.sockname
 
         sock.sendto(b"bye", server.sockname)
         got, client_addr = await server.recv()
         assert got == b"bye"
-        assert client_addr == sock.getsockname()
+
+        if family == socket.AF_UNIX:
+            assert client_addr is None
+            os.unlink(addr)
+        else:
+            assert client_addr == sock.getsockname()
 
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(server.recv(), 0.05)
@@ -132,21 +169,35 @@ async def test_bind_sync(addr, family):
         sock.sendto(b"hi", server.sockname)
         got, client_addr = await server.recv()
         assert got == b"hi"
-        assert client_addr == sock.getsockname()
 
-        await server.send(b"bye", sock.getsockname())
-        got, server_addr = sock.recvfrom(4)
-        assert got == b"bye"
-        assert server_addr == server.sockname
+        if family == socket.AF_UNIX:
+            # AF_UNIX doesn't automatically bind
+            assert client_addr is None
+        else:
+            assert client_addr == sock.getsockname()
+
+            await server.send(b"bye", sock.getsockname())
+            got, server_addr = sock.recvfrom(4)
+            assert got == b"bye"
+            assert server_addr == server.sockname
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "addr,family",
-    [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
-    ids=["INET", "INET6"],
+    [
+        (("127.0.0.1", 0), socket.AF_INET),
+        (("::1", 0), socket.AF_INET6),
+        ("socket", socket.AF_UNIX),
+    ],
+    ids=["INET", "INET6", "UNIX"],
 )
-async def test_from_socket_streamtype(addr, family):
+async def test_from_socket_streamtype(addr, family, tmp_path):
+    if family == socket.AF_UNIX:
+        if sys.version_info < (3, 7):
+            pytest.skip()
+        addr = str(tmp_path / addr)
+
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.bind(addr)
         stream = await asyncio_dgram.from_socket(sock)
@@ -158,14 +209,22 @@ async def test_from_socket_streamtype(addr, family):
         assert isinstance(stream, asyncio_dgram.aio.DatagramServer)
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
+        if family == socket.AF_UNIX:
+            os.unlink(addr)
+
         sock.bind(addr)
 
         with socket.socket(family, socket.SOCK_DGRAM) as tsock:
             tsock.connect(sock.getsockname())
             stream = await asyncio_dgram.from_socket(tsock)
 
-            assert stream.sockname is not None
-            assert tsock.getsockname() == stream.sockname
+            if family == socket.AF_UNIX:
+                assert stream.sockname is None
+                assert tsock.getsockname() == ""
+            else:
+                assert stream.sockname is not None
+                assert stream.sockname == tsock.getsockname()
+
             assert isinstance(stream, asyncio_dgram.aio.DatagramClient)
             assert stream.peername == sock.getsockname()
             assert stream.socket.fileno() == tsock.fileno()
@@ -177,9 +236,14 @@ async def test_from_socket_streamtype(addr, family):
 
 
 @pytest.mark.asyncio
-async def test_from_socket_bad_socket():
-    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
-        with pytest.raises(TypeError, match="either AddressFamily.AF"):
+async def test_from_socket_bad_socket(monkeypatch):
+    class MockSocket:
+        family = socket.AF_PACKET
+
+    with monkeypatch.context() as m:
+        m.setattr(socket, "socket", lambda _, __: MockSocket())
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        with pytest.raises(TypeError, match="socket family not one of"):
             await asyncio_dgram.from_socket(sock)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -235,10 +299,24 @@ async def test_echo(addr):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("addr", [("127.0.0.1", 0), ("::1", 0)], ids=["INET", "INET6"])
-async def test_echo_bind(addr):
-    server = await asyncio_dgram.bind(addr)
-    client = await asyncio_dgram.bind(addr)
+@pytest.mark.parametrize(
+    "addr,family",
+    [
+        (("127.0.0.1", 0), socket.AF_INET),
+        (("::1", 0), socket.AF_INET6),
+        (None, socket.AF_UNIX),
+    ],
+    ids=["INET", "INET6", "UNIX"],
+)
+async def test_echo_bind(addr, family, tmp_path):
+    if family == socket.AF_UNIX:
+        if sys.version_info < (3, 7):
+            pytest.skip()
+        server = await asyncio_dgram.bind(tmp_path / "socket1")
+        client = await asyncio_dgram.bind(tmp_path / "socket2")
+    else:
+        server = await asyncio_dgram.bind(addr)
+        client = await asyncio_dgram.bind(addr)
 
     await client.send(b"hi", server.sockname)
     data, client_addr = await server.recv()

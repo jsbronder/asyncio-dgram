@@ -1,4 +1,5 @@
 import asyncio
+import pathlib
 import socket
 import warnings
 
@@ -57,14 +58,16 @@ class DatagramStream:
         """
         The associated socket's own address
         """
-        return self._transport.get_extra_info("sockname")
+        r = self._transport.get_extra_info("sockname")
+        return None if r == "" else r
 
     @property
     def peername(self):
         """
         The address the associated socket is connected to
         """
-        return self._transport.get_extra_info("peername")
+        r = self._transport.get_extra_info("peername")
+        return None if r == "" else r
 
     @property
     def socket(self):
@@ -188,10 +191,12 @@ class Protocol(asyncio.DatagramProtocol):
 async def bind(addr):
     """
     Bind a socket to a local address for datagrams.  The socket will be either
-    AF_INET or AF_INET6 depending upon the type of address specified.
+    AF_INET, AF_INET6 or AF_UNIX depending upon the type of address specified.
 
     @param addr - For AF_INET or AF_INET6, a tuple with the the host and port to
                   to bind; port may be set to 0 to get any free port.
+                  For AF_UNIX the path at which to bind (with a leading \0 for
+                  abstract sockets).
     @return     - A DatagramServer instance
     """
     loop = asyncio.get_event_loop()
@@ -199,8 +204,15 @@ async def bind(addr):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
+    if not isinstance(addr, tuple):
+        family = socket.AF_UNIX
+        if isinstance(addr, pathlib.Path):
+            addr = str(addr)
+    else:
+        family = 0
+
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq, drained), local_addr=addr
+        lambda: Protocol(recvq, excq, drained), local_addr=addr, family=family,
     )
 
     return DatagramServer(transport, recvq, excq, drained)
@@ -209,10 +221,13 @@ async def bind(addr):
 async def connect(addr):
     """
     Connect a socket to a remote address for datagrams.  The socket will be
-    either AF_INET or AF_INET6 depending upon the type of host specified.
+    either AF_INET, AF_INET6 or AF_UNIX depending upon the type of host
+    specified.
 
     @param addr - For AF_INET or AF_INET6, a tuple with the the host and port to
                   to connect to.
+                  For AF_UNIX the path at which to connect (with a leading \0
+                  for abstract sockets).
     @return     - A DatagramClient instance
     """
     loop = asyncio.get_event_loop()
@@ -220,8 +235,15 @@ async def connect(addr):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
+    if not isinstance(addr, tuple):
+        family = socket.AF_UNIX
+        if isinstance(addr, pathlib.Path):
+            addr = str(addr)
+    else:
+        family = 0
+
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq, drained), remote_addr=addr
+        lambda: Protocol(recvq, excq, drained), remote_addr=addr, family=family,
     )
 
     return DatagramClient(transport, recvq, excq, drained)
@@ -244,13 +266,16 @@ async def from_socket(sock):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
-    if sock.family not in (socket.AF_INET, socket.AF_INET6):
+    supported_families = tuple((socket.AF_INET, socket.AF_INET6, socket.AF_UNIX))
+
+    if sock.family not in supported_families:
         raise TypeError(
-            "socket must be either %s or %s" % (socket.AF_INET, socket.AF_INET6)
+            "socket family not one of %s"
+            % (", ".join(str(f) for f in supported_families))
         )
 
     if sock.type != socket.SOCK_DGRAM:
-        raise TypeError("socket must be %s" % (socket.SOCK_DGRAM,))
+        raise TypeError("socket type must be %s" % (socket.SOCK_DGRAM,))
 
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: Protocol(recvq, excq, drained), sock=sock
