@@ -1,15 +1,7 @@
-# Specify the location where the package is to be installed. Note that this is
-# a required variable if the package is expected to be installed in an OE stage
-# environment via 'eto stage install'
 DESTDIR ?= /
-
-# This argument is used when selecting a unit test by name.
 UT ?=
 
-# Define the shell to use within the Makefile
 SHELL = /usr/bin/env bash
-
-# Define a set of constants based upon the version of python used and metadata
 PYTHON := $(shell which python3)
 PACKAGE := $(shell $(PYTHON) setup.py --name | tr '-' '_')
 VERSION := $(shell $(PYTHON) setup.py --version)
@@ -30,8 +22,6 @@ EXT_TARGETS := $(wildcard ext/*)
 	$(REQ_FILES) \
 	$(TEST_TARGETS) \
 	clean \
-	clean-build \
-	clean-env \
 	ext \
 	format \
 	install \
@@ -42,27 +32,12 @@ EXT_TARGETS := $(wildcard ext/*)
 default:
 
 
-clean: clean-build clean-env
-
-
-ifndef VIRTUAL_ENV
-clean-env:
-	@rm -rf .venv*
-	@rm -rf .dev*
-endif
-
-
-clean-build:
+clean:
 	@rm -rf .pytest_cache
 	@rm -rf .eggs
 	@rm -rf dist
 	@rm -rf build
 	@rm -rf $(PACKAGE).egg-info
-
-
-ext: $(EXT_TARGETS)
-$(EXT_TARGETS):
-	$(MAKE) -C $@ install_noext
 
 
 requirements: $(REQ_FILES)
@@ -89,8 +64,3 @@ $(TEST_TARGETS):
 
 install:
 	$(PYTHON) setup.py install --root $(DESTDIR) --prefix .
-
-
-install_noext: dist
-	$(PYTHON) -m pip install --no-deps \
-		--upgrade --force-reinstall --no-index dist/$(PACKAGE)-$(VERSION).tar.gz
