@@ -1,3 +1,6 @@
+1.1.1:
+	- Add license to setup.py [Fabian Affolter]
+
 1.1.0:
 	- AF_UNIX support added for python 3.7+
 
