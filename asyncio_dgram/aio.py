@@ -212,7 +212,9 @@ async def bind(addr):
         family = 0
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq, drained), local_addr=addr, family=family,
+        lambda: Protocol(recvq, excq, drained),
+        local_addr=addr,
+        family=family,
     )
 
     return DatagramServer(transport, recvq, excq, drained)
@@ -243,7 +245,9 @@ async def connect(addr):
         family = 0
 
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: Protocol(recvq, excq, drained), remote_addr=addr, family=family,
+        lambda: Protocol(recvq, excq, drained),
+        remote_addr=addr,
+        family=family,
     )
 
     return DatagramClient(transport, recvq, excq, drained)
