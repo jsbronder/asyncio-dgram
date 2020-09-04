@@ -24,6 +24,7 @@ setuptools.setup(
     url="https://github.com/jsbronder/asyncio-dgram",
     author="Justin Bronder",
     author_email="jsbronder@cold-front.org",
+    license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
