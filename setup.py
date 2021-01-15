@@ -26,7 +26,7 @@ setuptools.setup(
     author_email="jsbronder@cold-front.org",
     license="MIT",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Framework :: AsyncIO",
         "License :: OSI Approved :: MIT License",
