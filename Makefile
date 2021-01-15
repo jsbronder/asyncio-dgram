@@ -47,8 +47,16 @@ $(REQ_FILES):
 
 dist: dist/$(PACKAGE)-$(VERSION).tar.gz
 dist/$(PACKAGE)-$(VERSION).tar.gz: $(PKG_FILES) setup.py
+	@$(PYTHON) -m pip install --disable-pip-version-check wheel
 	$(PYTHON) setup.py sdist bdist_wheel
 
+upload: dist
+	@$(PYTHON) -m pip install --disable-pip-version-check wheel
+	$(PYTHON) -m twine upload dist/$(PACKAGE)-$(VERSION)*
+
+upload-test: dist
+	@$(PYTHON) -m pip install --disable-pip-version-check twine
+	$(PYTHON) -m twine upload --repository testpypi dist/$(PACKAGE)-$(VERSION)*
 
 format:
 	@black $(LINT_TARGETS)
