@@ -86,6 +86,8 @@ async def test_connect_sync(addr, family, tmp_path):
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(client.recv(), 0.05)
 
+        client.close()
+
     # Same as above but reversing the flow. Bind a regular socket, asyncio_dgram
     # connect, then check asyncio receive and send.
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -109,6 +111,8 @@ async def test_connect_sync(addr, family, tmp_path):
         got, client_addr = sock.recvfrom(4)
         assert got == b"bye"
         assert client_addr == client.sockname
+
+        client.close()
 
 
 @pytest.mark.asyncio
@@ -155,6 +159,8 @@ async def test_bind_sync(addr, family, tmp_path):
         with pytest.raises(asyncio.TimeoutError):
             await asyncio.wait_for(server.recv(), 0.05)
 
+        server.close()
+
     # Same as above but reversing the flow.  Bind an asyncio_dgram, regular
     # socket connect, then check asyncio receive and send.
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -180,6 +186,8 @@ async def test_bind_sync(addr, family, tmp_path):
             got, server_addr = sock.recvfrom(4)
             assert got == b"bye"
             assert server_addr == server.sockname
+
+        server.close()
 
 
 @pytest.mark.asyncio
@@ -297,6 +305,9 @@ async def test_echo(addr):
     assert server.peername is None
     assert client.peername == server.sockname
 
+    server.close()
+    client.close()
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -331,6 +342,9 @@ async def test_echo_bind(addr, family, tmp_path):
     assert server.peername is None
     assert client.peername is None
 
+    server.close()
+    client.close()
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("addr", [("127.0.0.1", 0), ("::1", 0)], ids=["INET", "INET6"])
@@ -349,6 +363,10 @@ async def test_unconnected_sender(addr):
 
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(connected.recv(), 0.05)
+
+    ep1.close()
+    ep2.close()
+    connected.close()
 
 
 @pytest.mark.asyncio
