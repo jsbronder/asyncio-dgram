@@ -10,6 +10,10 @@ import pytest
 import asyncio_dgram
 
 
+if sys.version_info < (3, 7):
+    asyncio.create_task = asyncio.ensure_future
+
+
 @pytest.fixture
 def mock_socket():
     s = unittest.mock.create_autospec(socket.socket)
@@ -450,3 +454,41 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
         assert TestableProtocol.instance._drained.is_set()
 
         os.close(mock_socket.fileno.return_value)
+
+
+@pytest.mark.asyncio
+async def test_transport_closed():
+    stream = await asyncio_dgram.bind(("127.0.0.1", 0))
+
+    # Two tasks, both receiving.  This is a bit weird and we don't handle it at
+    # this level on purpose.  The test is here to make that clear.  If having
+    # multiple recv() calls racing against each other on a single event loop is
+    # desired, one can wrap the DatagramStream with some sort of
+    # dispatcher/adapter.
+    recv = asyncio.create_task(stream.recv())
+    recv_hung = asyncio.create_task(stream.recv())
+
+    # Make sure both tasks get past the initial check for
+    # transport.is_closing()
+    await asyncio.sleep(0.1)
+
+    stream.close()
+
+    # Recv scheduled before transport closed
+    with pytest.raises(asyncio_dgram.TransportClosed):
+        await recv
+
+    # This task isn't going to finish.
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(recv_hung, timeout=0.01)
+
+    if sys.version_info >= (3, 7):
+        assert recv_hung.cancelled()
+
+    # No recv after transport closed
+    with pytest.raises(asyncio_dgram.TransportClosed):
+        await stream.recv()
+
+    # No send after transport closed
+    with pytest.raises(asyncio_dgram.TransportClosed):
+        await stream.send(b"junk", ("127.0.0.1", 0))

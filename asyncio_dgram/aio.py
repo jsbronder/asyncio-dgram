@@ -3,7 +3,14 @@ import pathlib
 import socket
 import warnings
 
-__all__ = ("bind", "connect", "from_socket")
+__all__ = ("TransportClosed", "bind", "connect", "from_socket")
+
+
+class TransportClosed(Exception):
+    """
+    Raised when the asyncio.DatagramTransport underlying a DatagramStream is
+    closed.
+    """
 
 
 class DatagramStream:
@@ -90,7 +97,12 @@ class DatagramStream:
         @param addr - remote address to send data to, if unspecified then the
                       underlying socket has to have been been connected to a
                       remote address previously.
+
+        @raises TransportClosed - DatagramTransport closed.
         """
+        if self._transport.is_closing():
+            raise TransportClosed()
+
         _ = self.exception
         self._transport.sendto(data, addr)
         await self._drained.wait()
@@ -101,9 +113,17 @@ class DatagramStream:
 
         @return - tuple of the bytes received and the address (ip, port) that
                   the data was received from.
+
+        @raises TransportClosed - DatagramTransport closed.
         """
+        if self._transport.is_closing():
+            raise TransportClosed()
+
         _ = self.exception
         data, addr = await self._recvq.get()
+        if data is None:
+            raise TransportClosed()
+
         return data, addr
 
 
@@ -168,6 +188,8 @@ class Protocol(asyncio.DatagramProtocol):
     def connection_lost(self, exc):
         if exc is not None:
             self._excq.put_nowait(exc)
+
+        self._recvq.put_nowait((None, None))
 
         if self._transport is not None:
             self._transport.close()
