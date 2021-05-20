@@ -52,11 +52,11 @@ dist/$(PACKAGE)-$(VERSION).tar.gz: $(PKG_FILES) setup.py
 
 upload: dist
 	@$(PYTHON) -m pip install --disable-pip-version-check wheel
-	$(PYTHON) -m twine upload dist/$(PACKAGE)-$(VERSION)*
+	$(PYTHON) -m twine upload dist/*$(VERSION)*
 
 upload-test: dist
 	@$(PYTHON) -m pip install --disable-pip-version-check twine
-	$(PYTHON) -m twine upload --repository testpypi dist/$(PACKAGE)-$(VERSION)*
+	$(PYTHON) -m twine upload --repository testpypi dist/*$(VERSION)*
 
 format:
 	@black $(LINT_TARGETS)
