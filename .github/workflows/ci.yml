@@ -43,5 +43,9 @@ jobs:
     - name: Test
       run: |
           make test
+    - if: ${{ matrix.python-version >= 3.7 }}
+      run: |
+        make type-check
+
 
 # vim: sw=2
