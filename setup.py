@@ -36,6 +36,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
+    package_data={"asyncio_dgram": ["*.pyi", "py.typed"]},
+    include_package_data=True,
     packages=["asyncio_dgram"],
     python_requires=">=3.5",
     install_requires=readfile("requirements.txt").split(),

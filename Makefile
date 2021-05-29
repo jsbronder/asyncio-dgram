@@ -62,6 +62,8 @@ format:
 	@black $(LINT_TARGETS)
 lint:
 	@flake8 --filename='*' $(LINT_TARGETS)
+type-check:
+	@mypy $(PACKAGE) test/  example.py
 
 
 test:

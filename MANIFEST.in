@@ -3,3 +3,5 @@ include requirements.txt
 include requirements-test.txt
 include Makefile
 include dev-env.sh
+include asyncio_dgram/*.pyi
+include asyncio_dgram/py.typed
