@@ -91,7 +91,7 @@ class DatagramStream:
         """
         self._transport.close()
 
-    async def send(self, data, addr=None):
+    async def _send(self, data, addr=None):
         """
         @param data - bytes to send
         @param addr - remote address to send data to, if unspecified then the
@@ -137,7 +137,7 @@ class DatagramServer(DatagramStream):
         @param data - bytes to send
         @param addr - remote address to send data to.
         """
-        await super().send(data, addr)
+        await super()._send(data, addr)
 
 
 class DatagramClient(DatagramStream):
@@ -149,7 +149,7 @@ class DatagramClient(DatagramStream):
         """
         @param data - bytes to send
         """
-        await super().send(data)
+        await super()._send(data)
 
 
 class Protocol(asyncio.DatagramProtocol):
