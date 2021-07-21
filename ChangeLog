@@ -1,3 +1,9 @@
+2.1.0:
+	- Type hints added
+	- DatagramStream.send() renamed to DatagramStream._send().  This should be
+	  backward compatible as both DatagramServer and DatagramClient were
+	  overloading it.
+
 2.0.0:
 	- TransportClosed exception raised from send/recv if the other end hung
 	  up.  https://github.com/jsbronder/asyncio-dgram/issues/9
