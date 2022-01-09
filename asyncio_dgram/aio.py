@@ -1,9 +1,12 @@
 import asyncio
 import pathlib
 import socket
+import sys
 import warnings
 
 __all__ = ("TransportClosed", "bind", "connect", "from_socket")
+
+_windows = sys.platform == "win32"
 
 
 class TransportClosed(Exception):
@@ -226,7 +229,7 @@ async def bind(addr):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
-    if not isinstance(addr, tuple):
+    if not _windows and not isinstance(addr, tuple):
         family = socket.AF_UNIX
         if isinstance(addr, pathlib.Path):
             addr = str(addr)
@@ -259,7 +262,7 @@ async def connect(addr):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
-    if not isinstance(addr, tuple):
+    if not _windows and not isinstance(addr, tuple):
         family = socket.AF_UNIX
         if isinstance(addr, pathlib.Path):
             addr = str(addr)
@@ -292,7 +295,10 @@ async def from_socket(sock):
     excq = asyncio.Queue()
     drained = asyncio.Event()
 
-    supported_families = tuple((socket.AF_INET, socket.AF_INET6, socket.AF_UNIX))
+    if not _windows:
+        supported_families = tuple((socket.AF_INET, socket.AF_INET6, socket.AF_UNIX))
+    else:
+        supported_families = tuple((socket.AF_INET, socket.AF_INET6))
 
     if sock.family not in supported_families:
         raise TypeError(
