@@ -492,3 +492,24 @@ async def test_transport_closed():
     # No send after transport closed
     with pytest.raises(asyncio_dgram.TransportClosed):
         await stream.send(b"junk", ("127.0.0.1", 0))
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python >= 3.6")
+async def test_bind_reuse_port():
+    async def use_socket(addr, reuse_port=None):
+        sock = await asyncio_dgram.bind(addr, reuse_port=reuse_port)
+        # give gather time to move to the other uses after the bind
+        await asyncio.sleep(0.1)
+        sock.close()
+
+    addr = ("127.0.0.1", 53001)
+    clients_count = 10
+    with pytest.raises(OSError, match="Address already in use"):
+        await asyncio.gather(*[use_socket(addr) for _ in range(clients_count)])
+
+    # We use another port in case the prev socket is still active (/ is still closing)
+    addr_2 = ("127.0.0.1", 53002)
+    await asyncio.gather(
+        *[use_socket(addr_2, reuse_port=True) for _ in range(clients_count)]
+    )

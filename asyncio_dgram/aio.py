@@ -213,15 +213,20 @@ class Protocol(asyncio.DatagramProtocol):
         super().resume_writing()
 
 
-async def bind(addr):
+async def bind(addr, reuse_port=None):
     """
     Bind a socket to a local address for datagrams.  The socket will be either
     AF_INET, AF_INET6 or AF_UNIX depending upon the type of address specified.
-
     @param addr - For AF_INET or AF_INET6, a tuple with the the host and port to
                   to bind; port may be set to 0 to get any free port.
                   For AF_UNIX the path at which to bind (with a leading \0 for
                   abstract sockets).
+    @param reuse_port - Tells the kernel to allow this endpoint to be bound to
+                    the same port as other existing endpoints are bound to, so long as
+                    they all set this flag when being created. This option is not
+                    supported on Windows and some UNIX's. If the
+                    :py:data:`~socket.SO_REUSEPORT` constant is not defined then this
+                    capability is unsupported.
     @return     - A DatagramServer instance
     """
     loop = asyncio.get_event_loop()
@@ -240,6 +245,7 @@ async def bind(addr):
         lambda: Protocol(recvq, excq, drained),
         local_addr=addr,
         family=family,
+        reuse_port=reuse_port,
     )
 
     return DatagramServer(transport, recvq, excq, drained)
