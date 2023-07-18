@@ -259,7 +259,12 @@ async def test_from_socket_bad_socket(monkeypatch):
             await asyncio_dgram.from_socket(sock)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        with pytest.raises(TypeError, match="must be SocketKind.SOCK_DGRAM"):
+        if sys.version_info < (3, 11):
+            m = "must be SocketKind.SOCK_DGRAM"
+        else:
+            m = "socket type must be 2"
+
+        with pytest.raises(TypeError, match=m):
             await asyncio_dgram.from_socket(sock)
 
 
