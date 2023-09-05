@@ -422,18 +422,13 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
         """
         pass
 
-    # Python 3.5 os.open doesn't like pathlib
-    cast = lambda x: x  # noqa: E731
-    if sys.version_info < (3, 6):
-        cast = lambda x: str(x)  # noqa: E731
-
     with monkeypatch.context() as ctx:
         ctx.setattr(asyncio_dgram.aio, "Protocol", TestableProtocol)
 
         client = await asyncio_dgram.from_socket(mock_socket)
         mock_socket.send.side_effect = BlockingIOError
         mock_socket.fileno.return_value = os.open(
-            cast(tmp_path / "socket"), os.O_RDONLY | os.O_CREAT
+            tmp_path / "socket", os.O_RDONLY | os.O_CREAT
         )
 
         with monkeypatch.context() as ctx2:
@@ -445,7 +440,7 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
         assert not TestableProtocol.instance._drained.is_set()
 
         mock_socket.send.side_effect = None
-        fd = os.open(cast(tmp_path / "socket"), os.O_WRONLY)
+        fd = os.open(tmp_path / "socket", os.O_WRONLY)
         os.write(fd, b"\n")
         os.close(fd)
 
@@ -500,7 +495,6 @@ async def test_transport_closed():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python >= 3.6")
 async def test_bind_reuse_port():
     async def use_socket(addr, reuse_port=None):
         sock = await asyncio_dgram.bind(addr, reuse_port=reuse_port)
