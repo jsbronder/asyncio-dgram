@@ -12,8 +12,8 @@ class DatagramStream:
     def __init__(
         self,
         transport: asyncio.DatagramProtocol,
-        recvq: asyncio.Queue,
-        excq: asyncio.Queue,
+        recvq: asyncio.Queue[tuple[Optional[bytes], Optional[_Address]]],
+        excq: asyncio.Queue[Exception],
         drained: asyncio.Event,
     ) -> None: ...
     def exception(self) -> None: ...
@@ -36,7 +36,7 @@ class DatagramClient(DatagramStream):
 
 class Protocol(asyncio.DatagramProtocol):
     def __init__(
-        self, recvq: asyncio.Queue, excq: asyncio.Queue, drained: asyncio.Event
+        self, recvq: asyncio.Queue[tuple[Optional[bytes], Optional[_Address]]], excq: asyncio.Queue[Exception], drained: asyncio.Event
     ) -> None: ...
     def connection_made(self, transport: asyncio.BaseTransport) -> None: ...
     def connection_lost(self, exc: Optional[Exception]) -> None: ...
