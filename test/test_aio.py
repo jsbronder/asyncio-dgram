@@ -1,30 +1,33 @@
 import asyncio
 import contextlib
 import os
+import pathlib
 import socket
 import sys
+import typing
 import unittest.mock
 
 import pytest
 
 import asyncio_dgram
 
+if typing.TYPE_CHECKING:
+    from socket import _Address
+else:
+    _Address = None
+
+if sys.version_info < (3, 9):
+    from typing import Generator
+else:
+    from collections.abc import Generator
+
 
 if sys.version_info < (3, 7):
     asyncio.create_task = asyncio.ensure_future
 
 
-@pytest.fixture
-def mock_socket():
-    s = unittest.mock.create_autospec(socket.socket)
-    s.family = socket.AF_INET
-    s.type = socket.SOCK_DGRAM
-
-    return s
-
-
 @contextlib.contextmanager
-def loop_exception_handler():
+def loop_exception_handler() -> Generator["asyncio.base_events._Context", None, None]:
     """
     Replace the current event loop exception handler with one that
     simply stores exceptions in the returned dictionary.
@@ -33,7 +36,9 @@ def loop_exception_handler():
     """
     context = {}
 
-    def handler(self, c):
+    def handler(
+        loop: asyncio.AbstractEventLoop, c: "asyncio.base_events._Context"
+    ) -> None:
         context.update(c)
 
     loop = asyncio.get_event_loop()
@@ -54,11 +59,16 @@ def loop_exception_handler():
     ],
     ids=["INET", "INET6", "UNIX"],
 )
-async def test_connect_sync(addr, family, tmp_path):
+async def test_connect_sync(
+    addr: typing.Union[_Address, str],
+    family: socket.AddressFamily,
+    tmp_path: pathlib.Path,
+) -> None:
     # Bind a regular socket, asyncio_dgram connect, then check asyncio send and
     # receive.
 
     if family == socket.AF_UNIX:
+        assert isinstance(addr, str)
         if sys.version_info < (3, 7):
             pytest.skip()
         addr = str(tmp_path / addr)
@@ -76,6 +86,7 @@ async def test_connect_sync(addr, family, tmp_path):
         assert client.peername == sock.getsockname()
 
         if family == socket.AF_UNIX:
+            assert isinstance(addr, str)
             # AF_UNIX doesn't automatically bind
             assert client_addr is None
             os.unlink(addr)
@@ -129,11 +140,16 @@ async def test_connect_sync(addr, family, tmp_path):
     ],
     ids=["INET", "INET6", "UNIX"],
 )
-async def test_bind_sync(addr, family, tmp_path):
+async def test_bind_sync(
+    addr: typing.Union[_Address, str],
+    family: socket.AddressFamily,
+    tmp_path: pathlib.Path,
+) -> None:
     # Bind an asyncio_dgram, regular socket connect, then check asyncio send and
     # receive.
 
     if family == socket.AF_UNIX:
+        assert isinstance(addr, str)
         if sys.version_info < (3, 7):
             pytest.skip()
         addr = str(tmp_path / addr)
@@ -204,8 +220,13 @@ async def test_bind_sync(addr, family, tmp_path):
     ],
     ids=["INET", "INET6", "UNIX"],
 )
-async def test_from_socket_streamtype(addr, family, tmp_path):
+async def test_from_socket_streamtype(
+    addr: typing.Union[_Address, str],
+    family: socket.AddressFamily,
+    tmp_path: pathlib.Path,
+) -> None:
     if family == socket.AF_UNIX:
+        assert isinstance(addr, str)
         if sys.version_info < (3, 7):
             pytest.skip()
         addr = str(tmp_path / addr)
@@ -248,7 +269,7 @@ async def test_from_socket_streamtype(addr, family, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_from_socket_bad_socket(monkeypatch):
+async def test_from_socket_bad_socket(monkeypatch: pytest.MonkeyPatch) -> None:
     class MockSocket:
         family = socket.AF_PACKET
 
@@ -260,11 +281,11 @@ async def test_from_socket_bad_socket(monkeypatch):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         if sys.version_info < (3, 11):
-            m = "must be SocketKind.SOCK_DGRAM"
+            msg = "must be SocketKind.SOCK_DGRAM"
         else:
-            m = "socket type must be 2"
+            msg = "socket type must be 2"
 
-        with pytest.raises(TypeError, match=m):
+        with pytest.raises(TypeError, match=msg):
             await asyncio_dgram.from_socket(sock)
 
 
@@ -274,7 +295,7 @@ async def test_from_socket_bad_socket(monkeypatch):
     [(("127.0.0.1", 0), socket.AF_INET), (("::1", 0), socket.AF_INET6)],
     ids=["INET", "INET6"],
 )
-async def test_no_server(addr, family):
+async def test_no_server(addr: _Address, family: socket.AddressFamily) -> None:
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         sock.bind(addr)
         free_addr = sock.getsockname()
@@ -297,7 +318,7 @@ async def test_no_server(addr, family):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("addr", [("127.0.0.1", 0), ("::1", 0)], ids=["INET", "INET6"])
-async def test_echo(addr):
+async def test_echo(addr: _Address) -> None:
     server = await asyncio_dgram.bind(addr)
     client = await asyncio_dgram.connect(server.sockname[:2])
 
@@ -328,13 +349,18 @@ async def test_echo(addr):
     ],
     ids=["INET", "INET6", "UNIX"],
 )
-async def test_echo_bind(addr, family, tmp_path):
+async def test_echo_bind(
+    addr: typing.Optional[_Address],
+    family: socket.AddressFamily,
+    tmp_path: pathlib.Path,
+) -> None:
     if family == socket.AF_UNIX:
         if sys.version_info < (3, 7):
             pytest.skip()
         server = await asyncio_dgram.bind(tmp_path / "socket1")
         client = await asyncio_dgram.bind(tmp_path / "socket2")
     else:
+        assert addr is not None
         server = await asyncio_dgram.bind(addr)
         client = await asyncio_dgram.bind(addr)
 
@@ -357,7 +383,7 @@ async def test_echo_bind(addr, family, tmp_path):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("addr", [("127.0.0.1", 0), ("::1", 0)], ids=["INET", "INET6"])
-async def test_unconnected_sender(addr):
+async def test_unconnected_sender(addr: _Address) -> None:
     # Bind two endpoints and connect to one.  Ensure that only the endpoint
     # that was connected to can send.
     ep1 = await asyncio_dgram.bind(addr)
@@ -379,7 +405,10 @@ async def test_unconnected_sender(addr):
 
 
 @pytest.mark.asyncio
-async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
+async def test_protocol_pause_resume(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
     # This is a little involved, but necessary to make sure that the Protocol
     # is correctly noticing when writing as been paused and resumed.  In
     # summary:
@@ -398,23 +427,24 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
         resume_writing_called = 0
         instance = None
 
-        def __init__(self, *args, **kwds):
+        def __init__(self, *args, **kwds) -> None:  # type: ignore
             TestableProtocol.instance = self
             super().__init__(*args, **kwds)
 
-        def connection_made(self, transport):
+        def connection_made(self, transport: asyncio.BaseTransport) -> None:
+            assert isinstance(transport, asyncio.WriteTransport)
             transport.set_write_buffer_limits(low=0, high=0)
             super().connection_made(transport)
 
-        def pause_writing(self):
+        def pause_writing(self) -> None:
             self.pause_writing_called += 1
             super().pause_writing()
 
-        def resume_writing(self):
+        def resume_writing(self) -> None:
             self.resume_writing_called += 1
             super().resume_writing()
 
-    async def passthrough():
+    async def passthrough() -> None:
         """
         Used to mock the wait method on the asyncio.Event tracking if the write
         buffer is past the high water mark or not.  Given we're testing how
@@ -422,10 +452,17 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
         """
         pass
 
+    mock_socket = unittest.mock.create_autospec(socket.socket)
+    mock_socket.family = socket.AF_INET
+    mock_socket.type = socket.SOCK_DGRAM
+
     with monkeypatch.context() as ctx:
         ctx.setattr(asyncio_dgram.aio, "Protocol", TestableProtocol)
 
         client = await asyncio_dgram.from_socket(mock_socket)
+        assert isinstance(client, asyncio_dgram.aio.DatagramClient)
+        assert TestableProtocol.instance is not None
+
         mock_socket.send.side_effect = BlockingIOError
         mock_socket.fileno.return_value = os.open(
             tmp_path / "socket", os.O_RDONLY | os.O_CREAT
@@ -457,7 +494,7 @@ async def test_protocol_pause_resume(monkeypatch, mock_socket, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_transport_closed():
+async def test_transport_closed() -> None:
     stream = await asyncio_dgram.bind(("127.0.0.1", 0))
 
     # Two tasks, both receiving.  This is a bit weird and we don't handle it at
@@ -495,8 +532,10 @@ async def test_transport_closed():
 
 
 @pytest.mark.asyncio
-async def test_bind_reuse_port():
-    async def use_socket(addr, reuse_port=None):
+async def test_bind_reuse_port() -> None:
+    async def use_socket(
+        addr: _Address, reuse_port: typing.Optional[bool] = None
+    ) -> None:
         sock = await asyncio_dgram.bind(addr, reuse_port=reuse_port)
         # give gather time to move to the other uses after the bind
         await asyncio.sleep(0.1)

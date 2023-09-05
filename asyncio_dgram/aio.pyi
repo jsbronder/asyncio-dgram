@@ -9,6 +9,9 @@ class TransportClosed(Exception):
     pass
 
 class DatagramStream:
+    # Support type-checking in unittests which mock this
+    _drained: asyncio.Event
+
     def __init__(
         self,
         transport: asyncio.DatagramProtocol,
@@ -16,8 +19,11 @@ class DatagramStream:
         excq: asyncio.Queue[Exception],
         drained: asyncio.Event,
     ) -> None: ...
+    @property
     def exception(self) -> None: ...
+    @property
     def sockname(self) -> str: ...
+    @property
     def peername(self) -> str: ...
 
     # TODO: If upstream ever does better then Any, do so here. It's
@@ -35,6 +41,9 @@ class DatagramClient(DatagramStream):
     async def send(self, data: bytes) -> None: ...
 
 class Protocol(asyncio.DatagramProtocol):
+    # Support type-checking in unittests which mock this
+    _drained: asyncio.Event
+
     def __init__(
         self, recvq: asyncio.Queue[tuple[Optional[bytes], Optional[_Address]]], excq: asyncio.Queue[Exception], drained: asyncio.Event
     ) -> None: ...
