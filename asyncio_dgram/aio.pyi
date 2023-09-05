@@ -5,6 +5,9 @@ import sys
 from socket import _Address
 from typing import Any, Optional, Tuple, Union
 
+class TransportClosed(Exception):
+    pass
+
 class DatagramStream:
     def __init__(
         self,
