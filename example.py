@@ -3,7 +3,7 @@ import asyncio
 import asyncio_dgram
 
 
-async def udp_echo_client():
+async def udp_echo_client() -> None:
     stream = await asyncio_dgram.connect(("127.0.0.1", 8888))
 
     await stream.send(b"Hello World!")
@@ -13,7 +13,7 @@ async def udp_echo_client():
     stream.close()
 
 
-async def udp_echo_server():
+async def udp_echo_server() -> None:
     stream = await asyncio_dgram.bind(("127.0.0.1", 8888))
 
     print(f"Serving on {stream.sockname}")
@@ -26,7 +26,7 @@ async def udp_echo_server():
     print(f"Shutting down server")
 
 
-def main():
+def main() -> None:
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.gather(udp_echo_server(), udp_echo_client()))
 
