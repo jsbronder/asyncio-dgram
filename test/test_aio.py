@@ -243,6 +243,7 @@ async def test_from_socket_streamtype(
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
         if family == socket.AF_UNIX:
+            assert isinstance(addr, str)
             os.unlink(addr)
 
         sock.bind(addr)

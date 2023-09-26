@@ -2,7 +2,7 @@ import asyncio
 import pathlib
 import socket
 import sys
-from socket import _Address
+from socket import _Address, _RetAddress
 from typing import Any, Optional, Tuple, Union
 
 class TransportClosed(Exception):
@@ -22,9 +22,9 @@ class DatagramStream:
     @property
     def exception(self) -> None: ...
     @property
-    def sockname(self) -> str: ...
+    def sockname(self) -> _RetAddress: ...
     @property
-    def peername(self) -> str: ...
+    def peername(self) -> _RetAddress: ...
 
     # TODO: If upstream ever does better then Any, do so here. It's
     # socket.socket in <3.8 and asyncio.TransportSocket thereafter.
