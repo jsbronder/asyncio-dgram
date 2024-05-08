@@ -36,6 +36,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     package_data={"asyncio_dgram": ["*.pyi", "py.typed"]},
     include_package_data=True,
