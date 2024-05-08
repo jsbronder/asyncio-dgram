@@ -1,4 +1,10 @@
-next:
+2.2.0:
+	- Typing fixes.
+		https://github.com/jsbronder/asyncio-dgram/issues/16
+		https://github.com/jsbronder/asyncio-dgram/issues/15
+	- Add option for resue_port in bind, thaks to yoelbassin.
+		https://github.com/jsbronder/asyncio-dgram/pull/14
+	- Support for python 3.11, 3.12 added.
 	- Support for python 3.5 dropped.
 
 2.1.2:
