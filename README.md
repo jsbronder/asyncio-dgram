@@ -19,7 +19,7 @@ only provides three functions for creating a stream:
 - `connect((host, port))`: Creates a datagram endpoint which can only
   communicate with the endpoint it connected to.
 - `bind((host, port))`: Creates a datagram endpoint that can communicate
-  with anyone, but must specified the destination address every time it
+  with anyone, but must specify the destination address every time it
   sends.
 - `from_socket(sock)`: If the above two functions are not sufficient, then
   `asyncio_dgram` simply lets the caller setup the socket as they see fit.
