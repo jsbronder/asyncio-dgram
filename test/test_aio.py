@@ -22,10 +22,6 @@ else:
     from collections.abc import Generator
 
 
-if sys.version_info < (3, 7):
-    asyncio.create_task = asyncio.ensure_future
-
-
 @contextlib.contextmanager
 def loop_exception_handler() -> Generator["asyncio.base_events._Context", None, None]:
     """
@@ -69,8 +65,6 @@ async def test_connect_sync(
 
     if family == socket.AF_UNIX:
         assert isinstance(addr, str)
-        if sys.version_info < (3, 7):
-            pytest.skip()
         addr = str(tmp_path / addr)
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -150,8 +144,6 @@ async def test_bind_sync(
 
     if family == socket.AF_UNIX:
         assert isinstance(addr, str)
-        if sys.version_info < (3, 7):
-            pytest.skip()
         addr = str(tmp_path / addr)
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -227,8 +219,6 @@ async def test_from_socket_streamtype(
 ) -> None:
     if family == socket.AF_UNIX:
         assert isinstance(addr, str)
-        if sys.version_info < (3, 7):
-            pytest.skip()
         addr = str(tmp_path / addr)
 
     with socket.socket(family, socket.SOCK_DGRAM) as sock:
@@ -356,8 +346,6 @@ async def test_echo_bind(
     tmp_path: pathlib.Path,
 ) -> None:
     if family == socket.AF_UNIX:
-        if sys.version_info < (3, 7):
-            pytest.skip()
         server = await asyncio_dgram.bind(tmp_path / "socket1")
         client = await asyncio_dgram.bind(tmp_path / "socket2")
     else:
@@ -520,8 +508,7 @@ async def test_transport_closed() -> None:
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(recv_hung, timeout=0.01)
 
-    if sys.version_info >= (3, 7):
-        assert recv_hung.cancelled()
+    assert recv_hung.cancelled()
 
     # No recv after transport closed
     with pytest.raises(asyncio_dgram.TransportClosed):
