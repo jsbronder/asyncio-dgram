@@ -2,11 +2,9 @@
 .pytest_cache/
 build/
 dist/
-.venv-3*
-.eto-venv/
+.venv*
 
 *.sw[po]
 .python-version
 __pycache__
 .devrc-*
-.eggs/

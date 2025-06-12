@@ -1,0 +1,44 @@
+[project]
+name = "asyncio-dgram"
+version = "2.2.0"
+description = "Higher level Datagram support for Asyncio"
+readme = "README.md"
+authors = [
+    { name = "Justin Bronder", email = "jsbronder@cold-front.org" }
+]
+requires-python = ">=3.8"
+dependencies = []
+license = "MIT"
+keywords = ["asyncio", "datagram", "udp"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Framework :: AsyncIO",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "black",
+    "flake8",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[project.urls]
+Homepage = "https://github.com/jsbronder/asyncio-dgram"
+Repository = "https://github.com/jsbronder/asyncio-dgram.git"
+Issues = "https://github.com/jsbronder/asyncio-dgram/issues"
+Changelog = "https://github.com/jsbronder/asyncio-dgram/blob/master/ChangeLog"
+
+[tool.mypy]
+strict = true
