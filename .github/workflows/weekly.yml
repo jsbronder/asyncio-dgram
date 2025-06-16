@@ -13,24 +13,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - name: Setup uv
+    - uses: actions/setup-uv@v5
       with:
+        enable-cache: true
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        make requirements
-    - name: Lint
-      run: |
-        make lint
-    - name: Format
-      run: |
-        make format && git diff --quiet HEAD
-    - name: Type check
-      run: |
-        make type-check
+    - name: Sync Environment
+      run: uv sync --frozen
     - name: Test
-      run: |
-          make test
+      run: make test
+    - name: Type check
+      run: make type-check
 
 # vim: sw=2
