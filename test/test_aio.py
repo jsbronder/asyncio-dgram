@@ -445,21 +445,22 @@ async def test_protocol_pause_resume(
         """
         pass
 
-    mock_socket = unittest.mock.create_autospec(socket.socket)
-    mock_socket.family = socket.AF_INET
-    mock_socket.type = socket.SOCK_DGRAM
-
-    with monkeypatch.context() as ctx:
+    with monkeypatch.context() as ctx, socket.socket(
+        socket.AF_INET, socket.SOCK_DGRAM
+    ) as sock:
+        sock.setblocking(False)
         ctx.setattr(asyncio_dgram.aio, "Protocol", TestableProtocol)
+
+        mock_socket = unittest.mock.create_autospec(socket.socket)
+        mock_socket.family = socket.AF_INET
+        mock_socket.type = socket.SOCK_DGRAM
+        mock_socket.fileno.return_value = sock.fileno()
 
         client = await asyncio_dgram.from_socket(mock_socket)
         assert isinstance(client, asyncio_dgram.aio.DatagramClient)
         assert TestableProtocol.instance is not None
 
         mock_socket.send.side_effect = BlockingIOError
-        mock_socket.fileno.return_value = os.open(
-            tmp_path / "socket", os.O_RDONLY | os.O_CREAT
-        )
 
         with monkeypatch.context() as ctx2:
             ctx2.setattr(client._drained, "wait", passthrough)
@@ -470,9 +471,6 @@ async def test_protocol_pause_resume(
         assert not TestableProtocol.instance._drained.is_set()
 
         mock_socket.send.side_effect = None
-        fd = os.open(tmp_path / "socket", os.O_WRONLY)
-        os.write(fd, b"\n")
-        os.close(fd)
 
         with monkeypatch.context() as ctx2:
             ctx2.setattr(client._drained, "wait", passthrough)
@@ -482,8 +480,6 @@ async def test_protocol_pause_resume(
         assert TestableProtocol.instance.pause_writing_called == 1
         assert TestableProtocol.instance.resume_writing_called == 1
         assert TestableProtocol.instance._drained.is_set()
-
-        os.close(mock_socket.fileno.return_value)
 
 
 @pytest.mark.asyncio
