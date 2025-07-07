@@ -393,6 +393,10 @@ async def test_unconnected_sender(addr: _Address) -> None:
     connected.close()
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 13),
+    reason="https://github.com/python/cpython/issues/135444",
+)
 @pytest.mark.asyncio
 async def test_protocol_pause_resume(
     monkeypatch: pytest.MonkeyPatch,
