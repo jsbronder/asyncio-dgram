@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/jsbronder/asyncio-dgram/workflows/ci/badge.svg)](https://github.com/jsbronder/asyncio-dgram/actions)
+[![Build Status](https://github.com/jsbronder/asyncio-dgram/actions/workflows/ci.yml/badge.svg)](https://github.com/jsbronder/asyncio-dgram/actions/workflows/ci.yml)
 
 # Higher level Datagram support for Asyncio
 Simple wrappers that allow you to `await read()` from datagrams as suggested
