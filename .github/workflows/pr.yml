@@ -1,0 +1,60 @@
+name: Check Pull Request
+on: pull_request
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        python-version: "3.12"
+    - name: Sync Environment
+      run: make sync
+    - name: Lint
+      run: make lint
+    - name: Format
+      run: make check-format
+    - name: Type Check
+      run: make type-check
+
+  gather-pr-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      shas: ${{ steps.get-shas.outputs.shas }}
+    steps:
+      - uses: jsbronder/actions/get-pr-shas@v1
+        id: get-shas
+
+  test-commits:
+    runs-on: ubuntu-latest
+    needs: gather-pr-commits
+    permissions:
+      contents: read
+      statuses: read
+    strategy:
+      fail-fast: false
+      matrix:
+        sha: ${{ fromJson(needs.gather-pr-commits.outputs.shas) }}
+        command: ["make test"]
+        python: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ needs.gather-pr-commits.outputs.shas }}
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - name: Sync Environment
+        run: make sync
+      - name: py${{ matrix.python }}/${{ matrix.command }}/${{ matrix.sha }}
+        uses: jsbronder/actions/test-commit@v1
+        with:
+          sha: ${{ matrix.sha }}
+          context: check/${{ matrix.python }}/${{ matrix.command }}
+          command: ${{ matrix.command }}

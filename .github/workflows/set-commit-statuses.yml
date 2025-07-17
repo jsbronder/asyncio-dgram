@@ -1,0 +1,17 @@
+name: Set Commit Statuses
+
+on:
+  workflow_run:
+    workflows: ["Check Pull Request"]
+    types:
+      - completed
+
+jobs:
+  set-commit-statuses:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - uses: jsbronder/actions/set-commit-statuses@v1
