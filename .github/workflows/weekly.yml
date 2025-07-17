@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11-dev", "3.12-dev"]
+        python-version: ["3.12-dev", "3.13-dev"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup uv

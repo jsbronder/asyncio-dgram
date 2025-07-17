@@ -11,7 +11,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-        python-version: "3.12"
+        python-version: "3.13"
     - name: Sync Environment
       run: make sync
     - name: Lint
@@ -40,7 +40,7 @@ jobs:
       matrix:
         sha: ${{ fromJson(needs.gather-pr-commits.outputs.shas) }}
         command: ["make test"]
-        python: ['3.9', '3.10', '3.11', '3.12']
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
         with:
