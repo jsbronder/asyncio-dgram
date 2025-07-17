@@ -23,7 +23,7 @@ async def udp_echo_server() -> None:
     await stream.send(data, remote_addr)
 
     await asyncio.sleep(0.5)
-    print(f"Shutting down server")
+    print("Shutting down server")
 
 
 def main() -> None:
