@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Justin Bronder", email = "jsbronder@cold-front.org" }
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = []
 license = "MIT"
 keywords = ["asyncio", "datagram", "udp"]

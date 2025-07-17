@@ -1,5 +1,5 @@
 next:
-	- Support for python 3.6, 3.7 dropped.
+	- Support for python 3.6, 3.7, 3.8 dropped.
 	- Tooling switch to use uv though still fronted by a Makefile
 
 2.2.0:

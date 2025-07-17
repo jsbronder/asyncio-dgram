@@ -445,9 +445,10 @@ async def test_protocol_pause_resume(
         """
         pass
 
-    with monkeypatch.context() as ctx, socket.socket(
-        socket.AF_INET, socket.SOCK_DGRAM
-    ) as sock:
+    with (
+        monkeypatch.context() as ctx,
+        socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock,
+    ):
         sock.setblocking(False)
         ctx.setattr(asyncio_dgram.aio, "Protocol", TestableProtocol)
 

@@ -82,9 +82,7 @@ class DatagramStream:
     @property
     def socket(self):
         """
-        The socket instance used by the stream.  In python <3.8 this is a
-        socket.socket instance, after it is an asyncio.TransportSocket
-        instance.
+        The asyncio.TransportSocket instance used by the stream.
         """
         return self._transport.get_extra_info("socket")
 
