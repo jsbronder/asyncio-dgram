@@ -1,6 +1,7 @@
 name: weekly
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: 11 4 * * 0
 
