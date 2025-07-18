@@ -10,8 +10,7 @@ V ?=
 OFFLINE ?= 1
 
 SHELL = /usr/bin/env bash
-PYTHON := $(shell which python3)
-PACKAGE := $(shell $(PYTHON) setup.py --name | tr '-' '_')
+PACKAGE := asyncio_dgram
 
 # List of files in the repository
 TEST_FILES := $(shell find test -type f -name '*.py')
@@ -19,7 +18,7 @@ PKG_FILES := $(shell find $(PACKAGE) -type f -name '*.py')
 BIN_FILES := $(wildcard bin/*)
 
 # Inferred targets from file names
-LINT_TARGETS := setup.py example.py $(PKG_FILES) $(BIN_FILES) $(TEST_FILES)
+LINT_TARGETS := example.py $(PKG_FILES) $(BIN_FILES) $(TEST_FILES)
 TEST_TARGETS := $(TEST_FILES:test/test_%.py=test_%)
 
 UV := uv --no-progress
