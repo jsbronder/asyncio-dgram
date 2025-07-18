@@ -32,7 +32,6 @@ dev = [
     "mypy",
     "pytest",
     "pytest-asyncio",
-    "setuptools",
 ]
 
 [project.urls]
