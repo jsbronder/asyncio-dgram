@@ -1,6 +1,7 @@
 name: Check Merge
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
