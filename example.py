@@ -26,10 +26,9 @@ async def udp_echo_server() -> None:
     print("Shutting down server")
 
 
-def main() -> None:
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.gather(udp_echo_server(), udp_echo_client()))
+async def main() -> None:
+    await asyncio.gather(udp_echo_server(), udp_echo_client())
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
