@@ -394,7 +394,8 @@ async def test_unconnected_sender(addr: _Address) -> None:
 
 
 @pytest.mark.skipif(
-    (3, 13) <= sys.version_info < (3, 13, 6) or sys.version_info >= (3, 14),
+    (3, 13) <= sys.version_info < (3, 13, 6)
+    or (3, 14) <= sys.version_info < (3, 14, 1),
     reason="https://github.com/python/cpython/issues/135444",
 )
 @pytest.mark.asyncio
