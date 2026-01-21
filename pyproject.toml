@@ -1,6 +1,6 @@
 [project]
 name = "asyncio-dgram"
-version = "2.2.0"
+version = "3.0.0"
 description = "Higher level Datagram support for Asyncio"
 readme = "README.md"
 authors = [
